@@ -1,0 +1,343 @@
+
+/ Begin slides
+%section#title-slide.slide
+  %h1 Getting Started with ActiveSupport Concern
+%section#how-to-overview.slide
+  %h2 Overview
+  %ol
+    %li
+      %h3 ActiveSupport is one of most important library of Rails Framework.
+      %p Contain Various Utility function such as(check with rails c and irb command)
+      %p  1) Cache Strategy, autoloading, eagerloading classes
+      %p  2) Resolve Dependency 
+      %p  3) Add various utility function to ruby defined classes
+      %p  4) like adding hour, minute to numeric class
+    %li
+      %h3 
+        ActiveSupport can be used for understanding rails structure and source code 
+    %li
+      %h3 
+        It is used in Various gems building such mongoid-slug(checkout source code).
+
+%section#what_is_active_support_concern.slide
+  %h2
+    What is ActiveSupport Concern?
+  %ol
+    %li  
+      ActiveSupport concern is basically module consisting of some methods.
+    %li
+      It implement 
+      %em
+        append_features 
+      instance method of Module.
+      %h3  What 'append_features(mod)' function does?:
+      %p
+        When the module(implementing append_features) is included in another, Ruby calls append_features in these module, passing it the receiving module in mod.
+    %li
+      'append_features' and 'included' are two instance function of Module get invoked when module is included in other. 
+    %li      
+      Only one feature need to be implemented.
+
+%section#concept_in_implementation.slide
+  %h2
+    Implementation Concept 
+  %ol
+    %li
+      Why ActiveSupport::Concern is useful, we first need to understand Ruby mixins.
+    %li
+      Mixins are “virtual classes” that have been injected in a class’s or module’s ancestor chain.   
+    %p
+      = succeed "." do
+        %code code
+    %pre
+      %code
+        :preserve
+          module MyMod
+          end
+
+          class Base
+          end
+
+          class Child < Base
+            include MyMod
+          end
+
+          # irb> Child.ancestors
+          #  => [Child, MyMod, Base, Object, Kernel, BasicObject]                   
+%section#concept1_in_implementation.slide
+  %h2
+    Implementation Concept 2
+  %ol 
+    %li
+      Modules can also be used to extend objects, for example:
+    %p
+      = succeed "." do
+        %code code 
+    %pre    
+      %code  
+        :preserve
+          my_obj = Object.new
+          my_obj.extend MyMod
+          # irb> my_obj.singleton_class.ancestors
+          # #  => [MyMod, Object, Kernel, BasicObject]
+    %p
+      When module extended by other, module method will became instance method  on an object’s singleton class.
+    %p
+      We will see through code in next section.
+
+%section#concept2_in_implementation.slide
+  %h2
+    Implementation Concept 3
+  %ol
+    %p
+      = succeed "." do
+        %code code
+    %pre
+      %code
+        :preserve
+          module TestModule
+            def check
+              p 'in test module'
+            end
+          end
+          
+          class Test
+            class << self
+              include TestModule
+            end
+          end
+
+          Test.check
+    
+    
+%section#concept3_in_implementation.slide
+  %h2
+    Continue from Previous code
+  %ol
+    %li
+      Method 'Check' in previous code known as singleton method(some also called static)
+    %li
+      Actually, there’s no such thing as static/class methods in Ruby. Rather, there are methods on a class’s singleton class.
+    %pre
+      %code
+        :preserve
+          class Test
+          end
+          Test.singleton_class.class_eval do
+            define_method :class_aa do
+              p 'class aaaa'
+            end
+          end
+          Test.class_aa
+    %li
+      There is misconception about class_eval and instance_eval function.
+%section#concept4_in_implementation.slide
+  %h2
+    Why to study include and extend ?
+  %ol
+    %li
+      Include and Extend should not be used at same class/others  
+    %li
+      Same module should not be both extended and included in other.
+    %pre
+      %code
+        :preserve
+          module Test
+            def wht
+              p 'in module Test'
+            end
+          end
+          class IncludeExtend
+            include Test
+            extend Test
+          end
+          IncludeExtend.wht
+          IncludeExtend.new.wht
+    %li
+      What benefit above code provide us?
+         
+    %li
+      Above code does not have practical usecase?
+    %li
+      Why would anyone want same method to be both instance and class method 
+%section#concept5_in_implementation.slide
+  %li
+    What if we want some method as class method and instance method of module to include
+    in class?
+  %li
+    Can be done with the help of some metaproramming structure and above concept 
+  %p
+    %pre    
+      %code
+        :preserve
+          module Person
+            module DemoClass
+              def live
+                p 'in live class method '
+              end
+            end
+            module DemoInstance
+              def personal_interest(interest)
+                p 'in instance method '
+              end
+            end
+            def self.included(base)
+              base.send :include, DemoInstance
+              base.send :extend, DemoClass
+            end
+          end
+%section#concept6_in_implementation.slide
+  %p
+    %pre
+      %code{lang: "ruby"}
+        :preserve
+          class Rohan
+            include Person
+          end                   
+      
+  %li#extensions-goto.slide
+    When person module get included in Rohan class, then
+    %em 
+      Module#included
+    method get invoked passing the receiver object(here Person) 
+  %li#extensions-menu.slide
+    In above code, we have created two module inside main module 'Person'
+  %li#extensions-hash.slide
+    One of two module encapsulate class methods and other module encapsulate instance method
+  %li#extensions-navigation.slide
+    Using dynamic method invocation, we call include and extend method call on base object as shown in previous slide
+  %li#extensions-navigation.slide
+    When module is included, by default its get included as instance methods. 
+%section#active_support_concern_code.slide
+  
+%section#markup.slide
+  %h2 The Markup
+  %p
+    Slides are just HTML elements with a class of
+    = succeed "." do
+      %code slide
+  %pre
+    %code
+      :preserve
+        &lt;section class=&quot;slide&quot;&gt;
+           &lt;h2&gt;How to Make a Deck&lt;/h2&gt;
+           &lt;ol&gt;
+              &lt;li&gt;
+                 &lt;h3&gt;Write Slides&lt;/h3&gt;
+                 &lt;p&gt;Slide content is simple HTML.&lt;/p&gt;
+              &lt;/li&gt;
+              &lt;li&gt;
+                 &lt;h3&gt;Choose Themes&lt;/h3&gt;
+                 &lt;p&gt;One for slide styles and one for deck transitions.&lt;/p&gt;
+              &lt;/li&gt;
+              &hellip;
+           &lt;/ol&gt;
+        &lt;/section&gt;    %section#themes.slide
+  %h2 Style Themes
+  %p Customizes the colors, typography, and layout of slide&nbsp;content.
+  %pre
+    %code &lt;link rel=&quot;stylesheet&quot; href=&quot;/path/to/css/style-theme.css&quot;&gt;
+  %h2 Transition Themes
+  %p
+    Defines transitions between slides using CSS3 transitions.  Less capable browsers fall back to cutaways. But
+    %strong you
+    aren&rsquo;t using
+    %em those
+    browsers to give your presentations, are&nbsp;you&hellip;
+  %pre
+    %code &lt;link rel=&quot;stylesheet&quot; href=&quot;/path/to/css/transition-theme.css&quot;&gt;
+%section#extensions.slide
+  %h2 Extensions
+  %p Core gives you basic slide functionality with left and right arrow navigation, but you may want more. Here are the ones included in this&nbsp;deck:
+  %ul
+    %li#extensions-goto.slide
+      %strong> deck.goto
+      \: Adds a shortcut key to jump to any slide number.  Hit g, type in the slide number, and hit&nbsp;enter.
+    %li#extensions-hash.slide
+      %strong> deck.hash
+      \: Enables internal linking within slides, deep linking to individual slides, and updates the address bar &amp; a permalink anchor with each slide&nbsp;change.
+    %li#extensions-menu.slide
+      %strong> deck.menu
+      \: Adds a menu view, letting you see all slides in a grid. Hit m to toggle to menu view, continue navigating your deck, and hit m to return to normal view. Touch devices can double-tap the deck to switch between&nbsp;views.
+    %li#extensions-navigation.slide
+      %strong> deck.navigation
+      \: Adds clickable left and right buttons for the less keyboard&nbsp;inclined.
+    %li#extensions-status.slide
+      %strong> deck.status
+      \: Adds a page number indicator. (current/total)
+    %li#extensions-scale.slide
+      %strong> deck.scale
+      \: Scales each slide to fit within the deck container using CSS Transforms for those browsers that support them.
+  %p#extension-folders.slide
+    Each extension folder in the download package contains the necessary JavaScript, CSS, and HTML&nbsp;files. For a complete list of extension modules included in deck.js, check out the&nbsp;
+    %a{:href => "http://imakewebthings.github.com/deck.js/docs"}> documentation
+    \.
+%section#nested.slide
+  %h2 Nested Slides
+  %p That last slide had a few steps.  To create substeps in slides, just nest them:
+  %pre
+    %code
+      :preserve
+        &lt;section class=&quot;slide&quot;&gt;
+          &lt;h2&gt;Extensions&lt;/h2&gt;
+          &lt;p&gt;Core gives you basic slide functionality...&lt;/p&gt;		
+          &lt;ul&gt;
+             &lt;li class=&quot;slide&quot;&gt;
+                &lt;h3&gt;deck.goto&lt;/h3&gt;
+                &lt;p&gt;Adds a shortcut key to jump to any slide number...&lt;/p&gt;
+             &lt;/li&gt;
+             &lt;li class=&quot;slide&quot;&gt;...&lt;/li&gt;	
+             &lt;li class=&quot;slide&quot;&gt;...&lt;/li&gt;
+             &lt;li class=&quot;slide&quot;&gt;...&lt;/li&gt;
+          &lt;/ul&gt;
+        &lt;/section&gt;    %section#elements-images.slide
+  %h2 Other Elements: Images
+  %img{:alt => "Kitties", :src => "http://placekitten.com/600/375"}/
+  %pre
+    %code &lt;img src=&quot;http://placekitten.com/600/375&quot; alt=&quot;Kitties&quot;&gt;
+%section#elements-blockquotes.slide
+  %h2 Other Elements: Blockquotes
+  %blockquote{:cite => "http://example.org"}
+    %p Food is an important part of a balanced diet.
+    %p
+      %cite Fran Lebowitz
+  %pre
+    %code
+      :preserve
+        &lt;blockquote cite=&quot;http://example.org&quot;&gt;
+          &lt;p&gt;Food is an important part of a balanced diet.&lt;/p&gt;
+          &lt;p&gt;&lt;cite&gt;Fran Lebowitz&lt;/cite&gt;&lt;/p&gt;
+        &lt;/blockquote&gt;    %section#elements-videos.slide
+  %h2 Other Elements: Video Embeds
+  %p Embed videos from your favorite online video service or with an HTML5 video&nbsp;element.
+  %iframe{:frameborder => "0", :height => "225", :src => "http://player.vimeo.com/video/1063136?title=0&amp;byline=0&amp;portrait=0", :width => "400"}
+  %pre
+    %code &lt;iframe src=&quot;http://player.vimeo.com/video/1063136?title=0&amp;amp;byline=0&amp;amp;portrait=0&quot; width=&quot;400&quot; height=&quot;225&quot; frameborder=&quot;0&quot;&gt;&lt;/iframe&gt;
+%section#digging-deeper.slide
+  %h2 Digging Deeper
+  %p
+    If you want to learn about making your own themes, extending deck.js, and more, check out the&nbsp;
+    %a{:href => "../docs/"}> documentation
+    \.
+/ deck.navigation snippet
+%a.deck-prev-link{:href => "#", :title => "Previous"} ←
+%a.deck-next-link{:href => "#", :title => "Next"} →
+/ deck.status snippet
+%p.deck-status
+  %span.deck-status-current
+  \/
+  %span.deck-status-total
+/ deck.goto snippet
+%form.goto-form{:action => ".", :method => "get"}
+  %label{:for => "goto-slide"} Go to slide:
+  %input#goto-slide{:list => "goto-datalist", :name => "slidenum", :type => "text"}/
+  %datalist#goto-datalist
+  %input{:type => "submit", :value => "Go"}/
+/ deck.hash snippet
+%a.deck-permalink{:href => ".", :title => "Permalink to this slide"} #
+/ Grab CDN jQuery, with a protocol relative URL; fall back to local if offline
+/ Initialize the deck
+:javascript
+  $(function() {
+  	$.deck('.slide');
+  });

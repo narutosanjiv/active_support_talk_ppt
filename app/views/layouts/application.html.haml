@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+%html
+  %head
+    %title
+      ActiveSupport Concern
+    %meta{name: "description", content: "Presentation of ActiveSupport Concern"}
+    %meta{name: "author", content: "Sanjiv Jha"}
+    %meta{name: "viewport", content: "width=1024, user-scalable=no"}
+    = stylesheet_link_tag "application", media: "all"
+    = javascript_include_tag "application"
+    = csrf_meta_tags
+  %body.deck-container
+    = yield  
+     

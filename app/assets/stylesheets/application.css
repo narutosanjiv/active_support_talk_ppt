@@ -1,0 +1,21 @@
+/*
+ * This is a manifest file that'll be compiled into application.css, which will include all the files
+ * listed below.
+ *
+ * Any CSS and SCSS file within this directory, lib/assets/stylesheets, vendor/assets/stylesheets,
+ * or vendor/assets/stylesheets of plugins, if any, can be referenced here using a relative path.
+ *
+ * You're free to add application-wide styles to this file and they'll appear at the top of the
+ * compiled file, but it's generally better to create a new file per style scope.
+ *
+ *= require_self
+ *= require core/deck.core
+ *= require extensions/goto/deck.goto
+ *= require extensions/menu/deck.menu
+ *= require extensions/navigation/deck.navigation
+ *= require extensions/status/deck.status
+ *= require extensions/hash/deck.hash
+ *= require extensions/scale/deck.scale
+ *= require themes/style/web-2.0.css
+ *= require themes/transition/vertical-slide
+ */
