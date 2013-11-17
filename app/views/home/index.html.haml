@@ -161,55 +161,264 @@
     %li
       Why would anyone want same method to be both instance and class method 
 %section#concept5_in_implementation.slide
-  %li
-    What if we want some method as class method and instance method of module to include
-    in class?
-  %li
-    Can be done with the help of some metaproramming structure and above concept 
-  %p
-    %pre    
+  %ol
+    %li
+      What if we want some method as class method and instance method of module to include
+      in class?
+    %li
+      Can be done with the help of some metaproramming structure and above concept 
+    %p
+      %pre    
+        %code
+          :preserve
+            module Person
+              module DemoClass
+                def live
+                  p 'in live class method '
+                end
+              end
+              module DemoInstance
+                def personal_interest(interest)
+                  p 'in instance method '
+                end
+              end
+              def self.included(base)
+                base.send :include, DemoInstance
+                base.send :extend, DemoClass
+              end
+            end
+%section#concept6_in_implementation.slide
+  %ol
+    %p
+      %pre
+        %code{lang: "ruby"}
+          :preserve
+            class Rohan
+              include Person
+            end                   
+        
+    %li#extensions-goto.slide
+      When person module get included in Rohan class, then
+      %em 
+        Module#included
+      method get invoked passing the receiver object(here Person) 
+    %li#extensions-menu.slide
+      In above code, we have created two module inside main module 'Person'
+    %li#extensions-hash.slide
+      One of two module encapsulate class methods and other module encapsulate instance method
+    %li#extensions-navigation.slide
+      Using dynamic method invocation, we call include and extend method call on base object as shown in previous slide
+    %li#extensions-navigation.slide
+      When module is included, by default its get included as instance methods. 
+%section#why_active_support_concern.slide
+  %h2 
+    Code using ActiveSupport::Concern 
+  %ol  
+    %li
+      %p
+        %pre
+          %code{lang: 'ruby'}
+            :preserve
+              require 'active_support/concern'          
+              module Person                             
+                extend ActiveSupport::Concern          
+                module ClassMethods                     
+                  def live                              
+                    p 'in live class method '
+                  end
+                end
+
+                def personal_interest(interest)
+                  p 'in instance method '
+                end
+              end
+              class Rohan
+                include Person
+              end
+    %li
+      No need to call extend and include methods on class object.
+    %li
+      What more ? or only these?
+%section#why_active_support_concern1.slide
+  %h2
+    Dependency Part 1 
+  %ol
+    %p
+      %pre
+        %code{lang: 'ruby'}
+          :preserve
+            module Test1
+              module DemoClass
+                def test1_check
+                  p 'in module test1'
+                end
+              end
+
+              module DemoInstance
+
+              end
+
+              def self.included(base)
+                base.send :include, DemoInstance
+                base.send :extend, DemoClass
+              end
+
+              def test1_check1
+
+              end
+            end
+
+            module Test2
+              include Test1
+              def self.included(base)
+                base.test1_check
+              end
+            end
+
+            class WithoutConcern
+              include Test2
+            end
+    %li
+      module Test2 depend on module Test1, but it can not be resolve correctly since it get included in Test1 
+    %li
+      ActiveSupport::Concern come here for rescue us
+
+%section#why_active_support_concern2.slide
+  %h2
+    Dependency Part 2
+  %ol
+    %pre
       %code
         :preserve
-          module Person
-            module DemoClass
-              def live
-                p 'in live class method '
+          require 'active_support/concern'
+          module Test1
+            extend ActiveSupport::Concern
+            module ClassMethods
+              def test1_check
+                p 'in module test1'
               end
             end
-            module DemoInstance
-              def personal_interest(interest)
-                p 'in instance method '
-              end
-            end
-            def self.included(base)
-              base.send :include, DemoInstance
-              base.send :extend, DemoClass
+
+            def test1_check1
+
             end
           end
-%section#concept6_in_implementation.slide
-  %p
-    %pre
-      %code{lang: "ruby"}
+
+          module Test2
+            extend ActiveSupport::Concern
+            include Test1
+            def self.included(base)
+              base.test1_check
+            end
+          end
+
+          class WithConcern
+            include Test2
+          end
+  %li
+    Each concern can include the concerns that it depends on, and they will get included into the class first.
+%section#why_active_support_concern2.slide
+  %h2
+    ActiveSupport Concern Source Code walkthrough
+  %ol
+    %p
+      %pre
+        %code
+          :preserve
+            module ActiveSupport
+              module Concern
+                def self.extended(base) #:nodoc:
+                  base.instance_variable_set("@_dependencies", [])
+                end
+
+                def append_features(base)
+                  if base.instance_variable_defined?("@_dependencies")
+                    base.instance_variable_get("@_dependencies") << self
+                    return false
+                  else
+                    return false if base < self
+                    @_dependencies.each { |dep| base.send(:include, dep) }
+                    super
+                    base.extend const_get("ClassMethods") if const_defined?("ClassMethods")
+                    base.class_eval(&@_included_block) if instance_variable_defined?("@_included_block")
+                  end
+                end
+                def included(base = nil, &block)
+                  if base.nil?
+                    @_included_block = block
+                  else
+                    super
+                  end
+                end
+              end
+            end
+
+%section#walk_through_code1.slide
+  %h2
+    WalkThrough Concern code 1
+  %pre  
+    %code
+      :preserve
+        def self.extended(base)
+          base.instance_variable_set("@_dependencies", [])
+        end
+  %li
+    When module extended with ActiveSupport::Concern, Ruby calls the self.extended method, and passes in our module
+  %li
+    ActiveSupport::Concern sets an instance variable on our module to an empty array. These will used to keep track of 
+    modules our module depend on.
+
+%section#walk_through_code2.slide
+  %h2
+    WalkThrough Concern code 2
+  %ol
+    %pre  
+      %code
         :preserve
-          class Rohan
-            include Person
-          end                   
-      
-  %li#extensions-goto.slide
-    When person module get included in Rohan class, then
-    %em 
-      Module#included
-    method get invoked passing the receiver object(here Person) 
-  %li#extensions-menu.slide
-    In above code, we have created two module inside main module 'Person'
-  %li#extensions-hash.slide
-    One of two module encapsulate class methods and other module encapsulate instance method
-  %li#extensions-navigation.slide
-    Using dynamic method invocation, we call include and extend method call on base object as shown in previous slide
-  %li#extensions-navigation.slide
-    When module is included, by default its get included as instance methods. 
-%section#active_support_concern_code.slide
-  
+          def append_features(base)
+          end
+    %li
+      append_features method get called by ruby when modules get included in other.
+    %li
+      ActiveSupport::Concern sets an instance variable on our module to an empty array. These will used to keep track of 
+      modules our module depend on.
+    %li
+      Ruby’s default implementation is to add the constants, methods, and module variables of this module to base module.
+%section#walk_through_code3.slide
+  %h2
+    WalkThrough Concern code 3
+  %ol
+    %pre
+      %code
+        :preserve
+          if base.instance_variable_defined?("@_dependencies")
+            base.instance_variable_get("@_dependencies") << self
+            return false
+    %li
+      If the module that our concern is included into has the dependencies instance variable, then it is assumed to be another concern and our concern is appended to it’s dependencies    
+%section#walk_through_code4.slide
+  %h2
+    WalkThrough Concern code 3
+  %ol
+    %pre
+      %code
+        :preserve
+          else
+            return false if base < self
+            @_dependencies.each { |dep| base.send(:include, dep) }
+            super
+            base.extend const_get("ClassMethods") if const_defined?("ClassMethods")
+            base.class_eval(&@_included_block) if instance_variable_defined?("@_included_block")
+          end
+    %li
+      If the module is already included, then its simple return with false value
+    %li
+      If module has any dependencies module, it get iterated and included in our base so that all function defined in these modules get called on base and calls #super to perform Ruby’s default behavior.
+    %li
+      base extend any class method defined in module 
+    %li
+      it calls #class_eval on a block if it’s defined
+
 %section#markup.slide
   %h2 The Markup
   %p
