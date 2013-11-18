@@ -35,8 +35,6 @@
         When the module(implementing append_features) is included in another, Ruby calls append_features in these module, passing it the receiving module in mod.
     %li
       'append_features' and 'included' are two instance function of Module get invoked when module is included in other. 
-    %li      
-      Only one feature need to be implemented.
 
 %section#concept_in_implementation.slide
   %h2
@@ -418,6 +416,65 @@
       base extend any class method defined in module 
     %li
       it calls #class_eval on a block if it’s defined
+
+%section#walk_through_code5.slide
+  %h2
+    Included
+  %ol
+    %pre
+      %code
+        :preserve
+          def included(base = nil, &block)
+            if base.nil?
+              @_included_block = block
+            else
+              super
+            end
+          end 
+    %li
+      ActiveSupport::Concern hijacks this method to give us a pretty syntax for declaring what should happen when our concern is included.
+           
+%section#service_object.slide
+  %h2
+    Service Object          
+  %ol
+    %li
+      Service Object is not new concept in web programming.
+    %li
+      A 'service' describes system interactions. Usually, these will involve more than one business model in our application 
+    %li
+      As an example: we have a User model and this encapsulates a password. If a user has forgotten their password, the business rules dictate that we have to send them an e-mail with a link to reset it. This functionality is a service.
+    %li
+      Service objects implement individual services
+%section#service_object1.slide
+  %h2
+    Service Object Vs ActiveSupport::Concern
+  %ol
+    %pre
+      %code
+        :preserve
+          class ForgottenPassword
+            def initialize(user_id)
+              user = User.find user_id
+              mail = UserMailer.password_reset @user
+              mail.deliver
+            end
+          end
+    %li
+      Service Object or ActiveSupport::Concern are not alternative to each other.
+    %li
+      Service Object is needed when requirement is of discrete in nature(use in separation of logic which is much different and does not depend on others).
+    %li
+      ActiveSupport::Concern come into picture when functionality is interdependent on each others.
+    %li 
+      No special module or class is get included in creating  service object. One can make service directly under app/ or create file under lib. 
+  
+%section#thank_you.slide          
+  %h2
+    Thank You
+  %ol
+    %p
+      Any Questions?            
 
 %a.deck-permalink{:href => ".", :title => "Permalink to this slide"} #
 / Grab CDN jQuery, with a protocol relative URL; fall back to local if offline
